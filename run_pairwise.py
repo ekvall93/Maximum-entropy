@@ -36,6 +36,9 @@ learning_curve(iteration, train_error)
 correlation_graph_data(emp_cov,verbose)
 correlation_graph_data(mod_cov,verbose,model=False)
 comparison(emp_cov.flatten(), mod_cov.flatten(),verbose,correlation=True)
+ins = np.tril_indices(n,k=-1)
+under_emp = emp_cov[ins]
+under_mod = mod_cov[ins]
 under_emp = np.tril(emp_cov, -1)
 under_mod = np.tril(mod_cov, -1)
 eps = under_emp.flatten() - under_mod.flatten()
