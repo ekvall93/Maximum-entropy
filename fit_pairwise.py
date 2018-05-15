@@ -218,12 +218,12 @@ class fit_pairwise(object):
         Dloss_train = (-self.model_cov + self.emp_cov_train.flatten())
 
         if self.save_loss:
-            self.train_error.append(max(abs(Dloss_train)))
+            self.train_error.append(np.max(abs(Dloss_train)))
 
         if self.emp_cov_test is not None:
             Dloss_test = (-self.model_cov + self.emp_cov_test.flatten())
             if self.save_loss:
-                self.test_error.append(max(abs(Dloss_test)))
+                self.test_error.append(np.max(abs(Dloss_test)))
 
         return Dloss_train
 

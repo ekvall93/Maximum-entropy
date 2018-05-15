@@ -23,7 +23,7 @@ M_samples = 40000
 # Number of cores for multiprocess.
 n_jobs = 2
 entropy = fit_pairwise(train,J0,learning_rate,M_samples,n_jobs,test=test,save_loss=True)
-iter = 10;
+iter = 100;
 #Recommended to have twice as many as neuronss.
 gibbs_steps = 2*n
 
@@ -32,7 +32,6 @@ verbose = str(gibbs_steps)+"_"+str(iter)+"_"+str(M_samples)+"_"+str(learning_rat
 start_time = time.time()
 J, emp_cov ,mod_cov,samples,train_error, test_error = entropy.fit_pairwise(iter,gibbs_steps);
 print("--- %s seconds ---" % (time.time() - start_time))
-
 train_error.pop(0)
 test_error.pop(0)
 iteration = range(0,np.size(train_error))
@@ -49,8 +48,6 @@ comparison(emp_cov.flatten(), mod_cov.flatten(),verbose,correlation=True)
 ins = np.tril_indices(n,k=-1)
 under_emp = emp_cov[ins]
 under_mod = mod_cov[ins]
-under_emp = np.tril(emp_cov, -1)
-under_mod = np.tril(mod_cov, -1)
 eps = under_emp.flatten() - under_mod.flatten()
 CHI2(eps,verbose)
 correlation_graph_J(J,verbose)

@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
-#from coniii import *
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from numpy import genfromtxt
 
 def data_for_likelihood(nr_simp,seed):
@@ -220,6 +218,9 @@ def save_data_and_print(h, J, test, train, train_error, test_error,
 
 def learning_curve(iteration, train_error, test_error=None, total=False):
     #I = np.arange(1, np.size(iteration)+1)
+    import matplotlib as mpl
+    mpl.use('Agg')
+    import matplotlib.pyplot as plt
     I = iteration
     fig = plt.figure()
     ax = fig.add_subplot(111)

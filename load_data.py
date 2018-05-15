@@ -2,7 +2,6 @@
 #from monte_carlo import *
 import numpy  as np
 import scipy.io as sio
-import matplotlib.pyplot as pp
 import os
 
 def get_mat_data():
