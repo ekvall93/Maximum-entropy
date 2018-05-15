@@ -340,7 +340,7 @@ def CHI2(eps,verbose):
     mu, std = norm.fit(eps)
 
     histogram=plt.figure()
-    plt.hist(eps,normed=True)
+    plt.hist(eps,bins=int(round(np.sqrt(np.size(eps)))),normed=True)
     xmin, xmax = plt.xlim()
     x = np.linspace(xmin, xmax, 100)
     p = norm.pdf(x, mu, std)
