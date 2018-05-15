@@ -175,14 +175,15 @@ class fit_pairwise(object):
         J_lin = self.grad_descent(J0_lin, iter, gibbs_steps)
         #Get model correlations matrix
         J = J_lin.reshape((self.m,self.m))
+        mod_cov = self.model_cov.reshape((self.m,self.m))
         #m_cov = self.model_cov.reshape((self.m,self.m))
         if self.save_loss:
             if self.test is not None:
-                return J, self.emp_cov_train ,self.model_cov_tmp,self.samples, self.train_error, self.test_error
+                return J, self.emp_cov_train ,mod_cov,self.samples, self.train_error, self.test_error
             else:
-                return J, self.emp_cov_train ,self.model_cov_tmp,self.samples, self.train_error
+                return J, self.emp_cov_train ,mod_cov,self.samples, self.train_error
         else:
-            return J, self.emp_cov_train ,self.model_cov_tmp,self.samples
+            return J, self.emp_cov_train ,mod_cov,self.samples
 
 
 
@@ -210,19 +211,19 @@ class fit_pairwise(object):
         n,m,k = np.shape(self.samples_batch)
         # Combine all montecarlo
         for i in range(0,k):
-            self.model_cov_tmp = np.dot(self.samples_batch[:,:,i].T,self.samples_batch[:,:,i])/n
-            model_covs[:,i] = self.model_cov_tmp.flatten()
-        model_cov = np.sum(model_covs, axis=1)/self.n_pools;
+            model_cov_tmp = np.dot(self.samples_batch[:,:,i].T,self.samples_batch[:,:,i])/n
+            model_covs[:,i] = model_cov_tmp.flatten()
+        self.model_cov = np.sum(model_covs, axis=1)/self.n_pools;
         #Calculate the difference in mpdel correlation and emperical correlation
-        Dloss_train = (-model_cov + self.emp_cov_train.flatten())
+        Dloss_train = (-self.model_cov + self.emp_cov_train.flatten())
 
         if self.save_loss:
-            self.train_error.append(max(Dloss_train))
+            self.train_error.append(max(abs(Dloss_train)))
 
         if self.emp_cov_test is not None:
-            Dloss_test = (-model_cov + self.emp_cov_test.flatten())
+            Dloss_test = (-self.model_cov + self.emp_cov_test.flatten())
             if self.save_loss:
-                self.test_error.append(Dloss_test)
+                self.test_error.append(max(abs(Dloss_test)))
 
         return Dloss_train
 

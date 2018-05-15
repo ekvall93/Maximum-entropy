@@ -55,6 +55,37 @@ def get_bpp_data_idx():
     neuron_ids = genfromtxt('./dataset/dimension3_150simplicies_sorted/neuron_ids.csv', delimiter=',')
     return simp_ids, neuron_ids
 
+def load_bpp_data(nr_seed,factor_test,split=False):
+
+    seeds = np.array(range(0,nr_seed))
+    np.random.shuffle(seeds)
+    cut_off = int(np.floor(factor_test*30))
+    test_seed = seeds[:cut_off]
+    train_seed = seeds[cut_off:]
+
+
+    for i, seed in enumerate(train_seed):
+        if i==0:
+            train = genfromtxt('./dataset/dimension3_150simplicies_sorted/simplex_train_150_'+str(seed)+'.csv', delimiter=',')
+            np.array(train)
+        else:
+            data = genfromtxt('./dataset/dimension3_150simplicies_sorted/simplex_train_150_'+str(seed)+'.csv', delimiter=',')
+            np.array(data)
+            train = np.append(train,data,axis=1)
+
+    for i, seed in enumerate(test_seed):
+        if i==0:
+            test = genfromtxt('./dataset/dimension3_150simplicies_sorted/simplex_train_150_'+str(seed)+'.csv', delimiter=',')
+            np.array(test)
+        else:
+            data = genfromtxt('./dataset/dimension3_150simplicies_sorted/simplex_train_150_'+str(seed)+'.csv', delimiter=',')
+            np.array(data)
+            test = np.append(test,data,axis=1)
+    if split:
+        return train[:150,:],train[150:,:],test[:150,:],test[150:,:]
+    else:
+        return train, test
+
 def load_bpp_data_no_split(split=True):
 
     seed_all = np.array(range(0,30))
@@ -194,8 +225,7 @@ def learning_curve(iteration, train_error, test_error=None, total=False):
     ax = fig.add_subplot(111)
     if test_error is not None:
         line2, = plt.plot(I, test_error, 'b--', label="Test error")
-    else:
-        line1, = plt.plot(I, train_error, 'r--', label="Training error")
+    line1, = plt.plot(I, train_error, 'r--', label="Training error")
 
     plt.ylabel("Average error:"r'$C_{ij}-J_{ij}$')
     plt.xlabel("Iteration")
