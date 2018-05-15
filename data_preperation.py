@@ -4,6 +4,75 @@ mpl.use('Agg')
 #from coniii import *
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from numpy import genfromtxt
+
+def data_for_likelihood(nr_simp,seed):
+    np.random.seed(seed=seed)
+    #Ids from the TR_matrices
+    simp_ids, neuron_ids = get_bpp_data_idx()
+    #Spike train
+    simplex, neurons = load_bpp_data_no_split()
+    simplex_idx = np.arange(150)
+    np.random.shuffle(simplex_idx)
+    random_simplex_idx = simplex_idx[:nr_simp]
+    random_simp_ids = simp_ids[random_simplex_idx]
+    data_s_and_n = simplex[random_simplex_idx,:]
+
+
+    occured_ids = []
+    data_n = np.empty((1,36000), int)
+    for id in random_simp_ids:
+        for i in id:
+            if i not in list(occured_ids):
+                occured_ids.append(i)
+                extract_id = np.where(i == neuron_ids)[0]
+                data_s_and_n = np.append(data_s_and_n,neurons[extract_id,:],axis=0)
+                data_n = np.append(data_n,neurons[extract_id,:],axis=0)
+    data_n = np.delete(data_n,0,0)
+
+
+    for i, ix in enumerate(neuron_ids):
+        if np.shape(data_n)[0]<np.shape(data_s_and_n)[0]:
+            if ix not in list(occured_ids):
+                data_n = np.append(data_n,neurons[[i],:],axis=0)
+        else:
+            pass
+    """
+
+    np.random.shuffle(simplex_idx)
+    for i, ix in enumerate(simplex_idx):
+        if np.shape(data_n)[0]<np.shape(data_s_and_n)[0]:
+                data_n = np.append(data_n,simplex[[ix],:],axis=0)
+        else:
+            pass
+    """
+
+
+    return data_s_and_n, data_n
+
+def get_bpp_data_idx():
+    simp_ids = genfromtxt('./dataset/dimension3_150simplicies_sorted/simp_ids.csv', delimiter=',')
+    neuron_ids = genfromtxt('./dataset/dimension3_150simplicies_sorted/neuron_ids.csv', delimiter=',')
+    return simp_ids, neuron_ids
+
+def load_bpp_data_no_split(split=True):
+
+    seed_all = np.array(range(0,30))
+
+    for i, seed in enumerate(seed_all):
+        if i==0:
+            train = genfromtxt('./dataset/dimension3_150simplicies_sorted/simplex_train_150_'+str(seed)+'.csv', delimiter=',')
+            np.array(train)
+        else:
+            data = genfromtxt('./dataset/dimension3_150simplicies_sorted/simplex_train_150_'+str(seed)+'.csv', delimiter=',')
+            np.array(data)
+            train = np.append(train,data,axis=1)
+
+    if split:
+        return train[:150,:],train[150:,:]
+    else:
+        return train
+
 
 def orderings_samples(sample_MCH, prob_sample):
     prob_MCH = state_probs(sample_MCH,allstates=None,weights=None,normalized=True)
@@ -257,4 +326,16 @@ def energy_dist(dE_mod,dE_sample,verbose):
     plt.legend(loc='upper right')
     plt.ylabel("Probability")
     plt.xlabel("Energy")
-    plt.savefig('/gpfs/bbp.cscs.ch/project/proj9/markus_test/maxent_2/figures/enerygy_dist/ed_'+str(verbose)+'.png')
+    plt.savefig('figures/enerygy_dist/ed_'+str(verbose)+'.png')
+
+def likelihhod_box_plot(L_s_n,L_n,verbose):
+    fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
+
+    ax1.boxplot(L_s_n, 1) #Notched boxplot
+    ax2.boxplot(L_n, 1) #Standard boxplot
+
+    ax1.set_title("Neurons with is's simplices")
+    ax2.set_title("Neurons with random simplices")
+    ax1.set_ylabel("Likelihood")
+    ax2.set_ylabel("Likelihood")
+    plt.savefig('figures/box_plot/ed_'+str(verbose)+'.png')
