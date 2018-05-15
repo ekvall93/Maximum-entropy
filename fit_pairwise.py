@@ -47,7 +47,7 @@ class fit_pairwise(object):
     Dloss
     __getstate__
     """
-    def __init__(self,train, J0, learning_rate,M_samples,n_jobs,test=None,
+    def __init__(self,train, J0, learning_rate,M_samples,n_jobs=None,test=None,
                  save_loss=False):
         # Do basic checks on the inputs.
         [n,m] = np.shape(train)
@@ -55,12 +55,6 @@ class fit_pairwise(object):
         assert m == np.shape(J0)[0] and m == np.shape(J0)[1], \
             'The shape of J should be ({2},{2}) and not ({0},{1}).' \
             .format(np.shape(J0)[0],np.shape(J0)[1],m)
-
-        assert (float(M_samples)/n_jobs).is_integer(), \
-                'Adjust M_samples ({0}), and n_jobs ({1}) so the quotient is' \
-                 ' int. Currenty M_samples/n_jobs = {2}.' \
-                .format(M_samples,n_jobs,float(M_samples)/n_jobs)
-
 
         [n,m] = np.shape(train)
         self.n = n
@@ -85,9 +79,18 @@ class fit_pairwise(object):
             self.train_error = []
         self.save_loss = save_loss
         self.emp_cov_train = np.dot(train.T,train).astype(float)/n
-        self.pool = Pool(n_jobs)
+        if n_jobs is None:
+            self.pool = Pool()
+        else:
+            self.pool = Pool(n_jobs)
         self.n_pools = self.pool._processes
         self.samples =None
+
+
+        assert (float(M_samples)/self.n_pools).is_integer(), \
+                'Adjust M_samples ({0}), and n_jobs ({1}) so the quotient is' \
+                 ' int. Currenty M_samples/n_jobs = {2}.' \
+                .format(M_samples,n_jobs,float(M_samples)/n_jobs)
 
     def prepare_sampling(self,k):
         """

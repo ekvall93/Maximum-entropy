@@ -22,7 +22,7 @@ learning_rate = 1
 M_samples = 40000
 # Number of cores for multiprocess.
 n_jobs = 2
-entropy = fit_pairwise(train,J0,learning_rate,M_samples,n_jobs,test=test,save_loss=True)
+entropy = fit_pairwise(train,J0,learning_rate,M_samples,n_jobs=n_jobs,test=test,save_loss=True)
 iter = 100;
 #Recommended to have twice as many as neuronss.
 gibbs_steps = 2*n
