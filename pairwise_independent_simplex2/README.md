@@ -24,22 +24,17 @@ Neuron ID 4 (Source) -> Neuron ID 5 (intermediate) -> Neuron ID 6 (Sink)
 Then the data matrix should be sorted in the following way:
 
 Neuron ID 1: [0 0 0 1 0 0 1 ....].T
+
 Neuron ID 2: [0 0 0 0 0 0 0 ....].T
+
 Neuron ID 3: [0 1 0 0 0 0 0 ....].T
+
 Neuron ID 4: [0 0 0 0 0 1 0 ....].T
+
 Neuron ID 5: [0 0 1 0 0 1 0 ....].T
+
 Neuron ID 6: [0 0 0 1 0 0 0 ....].T
 
 (#datapoints, #neurons)
 
 It's very important that the neurons is sorted in the following way, otherwise simplex train will not be extracted correctly.
-
-
-
-
-
-run_pairwise initiates the fit_pairwise class.
-
-The fit_pairwise require the pairwise_sampling.py and gradient_descent.py
-
-To approximate the negative log-likelihood use, likelihood_pairwise.py. It requuires getZ_pairwise.py and pairwise_sampling.py.
