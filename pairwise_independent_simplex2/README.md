@@ -35,6 +35,22 @@ Neuron ID 5: [0 0 1 0 0 1 0 ....].T
 
 Neuron ID 6: [0 0 0 1 0 0 0 ....].T
 
+and not like for eaxample,
+
+Neuron ID 1: [0 0 0 1 0 0 1 ....].T
+
+Neuron ID 3: [0 1 0 0 0 0 0 ....].T
+
+Neuron ID 4: [0 0 0 0 0 1 0 ....].T
+
+Neuron ID 5: [0 0 1 0 0 1 0 ....].T
+
+Neuron ID 2: [0 0 0 0 0 0 0 ....].T
+
+Neuron ID 6: [0 0 0 1 0 0 0 ....].T
+
+
+
 (#datapoints, #neurons)
 
 It's very important that the neurons is sorted in the following way, otherwise simplex train will not be extracted correctly.
