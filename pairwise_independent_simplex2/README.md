@@ -1,8 +1,9 @@
 # Maximum-entropy
 Python 2.7 and conda 4.3.30
 
-Maximum entropy - Maximum for simplices/neural trains
+Maximum entropy - Pairwise-Independent simplex model
 
+Only compatible for 2-dimensional simplices.
 
 Notice - The data for the simplices are not available since it's owned by the "Blue Brain Project". The data used in Jupyter notebook file is from the experimental data. Since the connectivity is not known, the simplices are not available. Hence, arbitrary neurons will be used as source, sink, and intermediate neuron to form 2-simplex. This will result in a worse likelihood than the Pairwise Ising model. But it will give an idea of how the algorithm works.
 
@@ -35,7 +36,7 @@ Neuron ID 5: [0 0 1 0 0 1 0 ....].T
 
 Neuron ID 6: [0 0 0 1 0 0 0 ....].T
 
-and not like for eaxample,
+and not like this following eaxample,
 
 Neuron ID 1: [0 0 0 1 0 0 1 ....].T
 
