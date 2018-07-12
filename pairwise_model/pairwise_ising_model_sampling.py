@@ -3,7 +3,8 @@ import numpy as np
 import scipy.sparse as sp
 
 
-def sample_pairwise(samples, J, n_steps, predict_spike_rate=False):
+def pairwise_ising_model_sampling(samples, J, n_steps,
+                                  predict_spike_rate=False):
     """
     Monte carlo sampling for the pairwise model.
 
@@ -28,19 +29,19 @@ def sample_pairwise(samples, J, n_steps, predict_spike_rate=False):
     for j in range(0, n_steps):
         delta_E = J[neuron_id, neuron_id].astype(float) + 2*samples.dot(
                                          J_offdiag[:, neuron_id]).astype(float)
-        p_spike = 1./(1+np.exp(delta_E))
-        N = np.size(p_spike)
-        p_spike = np.around(p_spike.reshape((N,)).astype(float), 6)
+        prob_spike = 1./(1+np.exp(delta_E))
+        N = np.size(prob_spike)
+        prob_spike = np.around(prob_spike.reshape((N,)).astype(float), 6)
         # If spin-state is more probeble keep it, in the end sve the most
         # probable spin-states.
         if predict_spike_rate:
-            x = 0.5 < p_spike
+            x = 0.5 < prob_spike
         else:
-            x = rand[:, neuron_id] < p_spike
+            x = rand[:, neuron_id] < prob_spike
         if sp.isspmatrix_csc(samples):
             samples = set_row_csc(samples, neuron_id, x)
         else:
-            samples[:, neuron_id] = rand[:, neuron_id] < p_spike
+            samples[:, neuron_id] = rand[:, neuron_id] < prob_spike
         # Old version
         neuron_id = neuron_id + 1
         if neuron_id == m:

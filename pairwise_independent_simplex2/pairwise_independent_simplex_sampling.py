@@ -36,17 +36,17 @@ def pairwise_independent_simplex_sample(samples, simplex_train, J, psi,
         + 2*samples.dot(J_offdiag[:, neuron_id]).astype(float)
         + simplex_train[:, s].dot(psi[s].reshape(1,)).astype(float)
 
-        p_spike = 1./(1+np.exp(delta_E))
-        N = np.size(p_spike)
-        p_spike = p_spike.reshape((N,)).astype(float)
+        prob_spike = 1./(1+np.exp(delta_E))
+        N = np.size(prob_spike)
+        prob_spike = prob_spike.reshape((N,)).astype(float)
         # If spin-state is more probeble keep it, in the end sve the most
         # probable spin-states.
         r = rand[:, neuron_id]
-        x = r < p_spike
+        x = r < prob_spike
         if sp.isspmatrix_csc(samples):
             samples = set_row_csc(samples, neuron_id, x)
         else:
-            samples[:, neuron_id] = rand[:, neuron_id] < p_spike
+            samples[:, neuron_id] = rand[:, neuron_id] < prob_spike
 
         # Old version
         neuron_id = neuron_id + 1

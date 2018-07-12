@@ -6,12 +6,12 @@ import numpy as np
 import scipy.sparse as sp
 
 
-def getZ_pairwise_independent_simplex(M_samples, simplex, J, psi, betas):
+def getZ_pairwise_independent_simplex(MC_samples, simplex, J, psi, betas):
     """
     Estimate the normalzation constant.
 
     ----------
-    M_samples : int
+    MC_samples : int
         Number of samples used in Monte carlo simulations
     J : ndarray
         The dervied paramters
@@ -27,12 +27,13 @@ def getZ_pairwise_independent_simplex(M_samples, simplex, J, psi, betas):
     import time
     start_time = time.time()
     print("---- INITIATE ANNEALED SAMPLING ----")
-    samples = np.random.uniform(low=0.0, high=1.0, size=(M_samples, n))
-    simplex_train = np.random.uniform(low=0.0, high=1.0, size=(M_samples, n/3))
+    samples = np.random.uniform(low=0.0, high=1.0, size=(MC_samples, n))
+    simplex_train = np.random.uniform(low=0.0, high=1.0, size=(MC_samples,
+                                                               n/3))
     spike_probs = np.exp(-np.diag(J).T)/(1 + np.exp(-np.diag(J).T))
-    samples = samples < np.tile(spike_probs, [M_samples, 1])
-    log_prob_ratios = energy_diff(samples, simplex, betas[1], betas[0],
-                                  J_diag, J, psi)
+    samples = samples < np.tile(spike_probs, [MC_samples, 1])
+    log_prob_ratios = delta_E(samples, simplex, betas[1], betas[0],
+                              J_diag, J, psi)
     for k in range(0, np.size(betas) - 2):
         J_k = (1-betas[k+1])*J_diag + betas[k+1]*J
         psi_k = psi*betas[k+1]
@@ -40,7 +41,7 @@ def getZ_pairwise_independent_simplex(M_samples, simplex, J, psi, betas):
         samples = sp.csc_matrix(samples)
         samples, simplex_train = pairwise_independent_simplex_sample(
                                  samples, simplex_train, J_k, psi_k, n)
-        log_prob_ratios = log_prob_ratios + energy_diff(
+        log_prob_ratios = log_prob_ratios + delta_E(
                     samples, simplex, betas[k+2], betas[k+1], J_diag, J, psi)
         if limit < float(k)/(np.size(betas) - 2):
             print("||Progress||: "+str(float(limit*100))+" %",
@@ -57,7 +58,7 @@ def getZ_pairwise_independent_simplex(M_samples, simplex, J, psi, betas):
     return Z
 
 
-def energy_diff(samples, simplex, b_k, b_k_1, J_diag, J, psi):
+def delta_E(samples, simplex, b_k, b_k_1, J_diag, J, psi):
     """Calcualte the energydifference."""
     simplex = get_simplex_train(samples)
     psi_term = -np.dot(simplex, psi)*(b_k - b_k_1)

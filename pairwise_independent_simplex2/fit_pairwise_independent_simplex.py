@@ -34,22 +34,22 @@ class fit_pairwise(object):
     J0 : ndarray,None
         Intial guess for correlations.
     learning_rate : float
-    M_samples : int
+    MC_samples : int
         Number of samples used in Monte carlo simulations
     n_jobs : int
         Number of jobs in parallel
     Methods
     -------
-    prepare_sampling
-    grad_descent
+    sample_preperation
+    gradient_descent
     fit_pairwise
-    Dloss
+    error
     __getstate__
 
     """
 
     def __init__(self, train, J0, psi, learning_rate,
-                 M_samples, n_jobs, test=None, save_loss=False):
+                 MC_samples, n_jobs, test=None, save_loss=False):
         """
         __init__.
 
@@ -61,7 +61,7 @@ class fit_pairwise(object):
             Intial guess
         learning_rate : float
            How much of the gradient that will be used
-        M_samples : int
+        MC_samples : int
             Number of samples used in Monte carlo simulations
         n_jobs : int
             Number of jobs in parallel
@@ -71,10 +71,10 @@ class fit_pairwise(object):
             Save the loss
         Methods
         -------
-        prepare_sampling
-        grad_descent
+        sample_preperation
+        gradient_descent
         fit_pairwise
-        Dloss
+        error
         __getstate__
 
         """
@@ -85,10 +85,10 @@ class fit_pairwise(object):
             "The shape of J should be ({2},{2}) and not ({0},{1})." \
             .format(np.shape(J0)[0], np.shape(J0)[1], m)
 
-        assert (float(M_samples)/n_jobs).is_integer(), \
-            "Adjust M_samples ({0}), and n_jobs ({1}) so the quotient is" \
-            " int. Currenty M_samples/n_jobs = {2}." \
-            .format(M_samples, n_jobs, float(M_samples)/n_jobs)
+        assert (float(MC_samples)/n_jobs).is_integer(), \
+            "Adjust MC_samples ({0}), and n_jobs ({1}) so the quotient is" \
+            " int. Currenty MC_samples/n_jobs = {2}." \
+            .format(MC_samples, n_jobs, float(MC_samples)/n_jobs)
         [n, m] = np.shape(train)
         self.n = n
         self.m = m
@@ -96,7 +96,7 @@ class fit_pairwise(object):
         self.psi = psi
         self.train = train
         self.test = test
-        self.M_samples = M_samples
+        self.MC_samples = MC_samples
         self.learning_rate = learning_rate
         if self.test is not None:
             print("Testdata included")
@@ -119,7 +119,7 @@ class fit_pairwise(object):
         self.n_pools = self.pool._processes
         self.samples = None
 
-    def prepare_sampling(self, k):
+    def sample_preperation(self, k):
         """
         Prepare the data before monte carlo sampling.
 
@@ -129,7 +129,7 @@ class fit_pairwise(object):
            Number of parallel proccees
 
         """
-        np_arr = np.squeeze(self.samples_batch[:, :, k])
+        np_arr = np.squeeze(self.batch_samples[:, :, k])
         sp_csc = sp.csc_matrix(np_arr)
         np_simp_arr = np.squeeze(self.simplex_train[:, :, k])
         simplex_train = sp.csc_matrix(np_simp_arr)
@@ -138,29 +138,29 @@ class fit_pairwise(object):
             steps = self.burn_in
         else:
             # Sampling period.
-            steps = self.gibbs_steps
+            steps = self.gibbs_iter
         samples, simplex_train = pairwise_independent_simplex_sample(
                                 sp_csc, simplex_train, self.J, self.psi, steps)
         batch = np.append(samples, simplex_train, axis=1)
         return batch
 
-    def grad_descent(self, pars0, iter, gibbs_steps):
+    def gradient_descent(self, param0, iter, gibbs_iter):
         """
         Prepare the data before monte carlo sampling.
 
         Parameters
         ----------
-        pars0 : ndarry
+        param0 : ndarry
            Intiial parameters
         iter : int
            Number of steps of gradient descent
-        gibbs_steps : int
+        gibbs_iter : int
            Number of monte carlo iterations
 
         """
-        pars = pars0
+        param = param0
         # Get the intiial error (gradient
-        g = self.Dloss(pars0, gibbs_steps)
+        err = self.error(param0, gibbs_iter)
         iteration = 0
         limit = 0.01
         import time
@@ -168,27 +168,26 @@ class fit_pairwise(object):
         print("---- STARTING GRADIENT ASCENT ----")
 
         while iteration < iter:
-            # pars = pars - self.learning_rate*g
-            pars = pars - self.learning_rate*g
+            param = param - self.learning_rate*err
             # Get the error (gradient)
-            g = self.Dloss(pars, gibbs_steps)
+            err = self.error(param, gibbs_iter)
             iteration = iteration + 1
             if limit < float(iteration)/iter:
                 print("||Progress||: "+str(float(limit*100))+" %",
-                      "||Maximal error||: "+str(round(np.max(np.abs(g)), 6)),
+                      "||Maximal error||: "+str(round(np.max(np.abs(err)), 6)),
                       "||Time left||: %s s" %
                       str(np.around(float(time.time()
                           - start_time)*(1/(float(iteration)/iter)-1), 2)))
                 limit = float(iteration)/iter+0.1
 
         print("||Progress||: 100 %",
-              "||Maximal error||: "+str(round(np.max(np.abs(g)), 6)),
+              "||Maximal error||: "+str(round(np.max(np.abs(err)), 6)),
               "||Time left||: %s s" %
               str(np.around(float(time.time()
                   - start_time)*(1/(float(iteration)/iter)-1), 2)))
-        return pars
+        return param
 
-    def fit_pairwise(self, iter, gibbs_steps):
+    def fit_pairwise(self, iter, gibbs_iter):
         """
         Prepare the data before monte carlo sampling.
 
@@ -198,55 +197,55 @@ class fit_pairwise(object):
            Number of iter
         iter : int
            Number of steps of gradient descent
-        gibbs_steps : int
+        gibbs_iter : int
            Number of monte carlo iterations
 
         """
         np.random.seed(seed=1)
-        J0_lin = np.append(self.J.flatten(), self.psi.flatten())
+        J0_flat = np.append(self.J.flatten(), self.psi.flatten())
         # get the number of neurons
         high = np.shape(self.train)[0]
-        # randomly samples M_samples from the data
-        randi = np.random.randint(0, high=high, size=(self.M_samples,))
+        # randomly samples MC_samples from the data
+        randi = np.random.randint(0, high=high, size=(self.MC_samples,))
         self.samples = self.train[randi, :]
         self.simplex_samples = self.simplices[randi, :]
         self.samples = np.array(self.samples[:int(
             np.floor(np.shape(self.samples)[0]/self.n_pools)*self.n_pools), :])
         self.simplex_samples = np.array(self.simplex_samples[:int(np.floor(
            np.shape(self.simplex_samples)[0]/self.n_pools)*self.n_pools), :])
-        self.samples_batch = np.zeros((self.M_samples/self.n_pools,
+        self.batch_samples = np.zeros((self.MC_samples/self.n_pools,
                                        self.m, self.n_pools))
-        self.simplex_train = np.zeros((self.M_samples/self.n_pools,
+        self.simplex_train = np.zeros((self.MC_samples/self.n_pools,
                                        np.shape(self.psi)[0], self.n_pools))
         # Divide the data into n_pools set for parallized monte carlo
         for k in range(0, self.n_pools):
-            idx_samples = range(k*(self.M_samples/self.n_pools),
-                                ((k+1)*self.M_samples/self.n_pools))
-            self.samples_batch[:, :, k] = self.samples[idx_samples, :]
+            idx_samples = range(k*(self.MC_samples/self.n_pools),
+                                ((k+1)*self.MC_samples/self.n_pools))
+            self.batch_samples[:, :, k] = self.samples[idx_samples, :]
             self.simplex_train[:, :, k] = self.simplex_samples[idx_samples, :]
         # Approximately needed burn-in-step
-        self.burn_in = 10*gibbs_steps
+        self.burn_in = 10*gibbs_iter
         self.first_batch = True
         # Get the intial samples after burn-in
         print("---- INITIATE BURN-IN ----")
-        batch = np.array(self.pool.map(self.prepare_sampling,
+        batch = np.array(self.pool.map(self.sample_preperation,
                          range(0, self.n_pools)))
         batch = np.moveaxis(batch, 0, -1)
-        self.samples_batch = batch[:, :self.m].reshape(
-                             self.M_samples/self.n_pools, self.m,
+        self.batch_samples = batch[:, :self.m].reshape(
+                             self.MC_samples/self.n_pools, self.m,
                              self.n_pools)
         self.simplex_train = batch[:, self.m:].reshape(
-                             self.M_samples/self.n_pools, self.m/3,
+                             self.MC_samples/self.n_pools, self.m/3,
                              self.n_pools)
 
         self.first_batch = False
         # Gradient ascent to learn paramters
-        J_lin = self.grad_descent(J0_lin, iter, gibbs_steps)
+        J_flat = self.gradient_descent(J0_flat, iter, gibbs_iter)
 
         # Get model correlations matrix
-        J = J_lin[:self.m**2].reshape((self.m, self.m))
-        psi = J_lin[self.m**2:]
-        mod_cov = self.model_cov.reshape((self.m, self.m))
+        J = J_flat[:self.m**2].reshape((self.m, self.m))
+        psi = J_flat[self.m**2:]
+        mod_cov = self.cov_model.reshape((self.m, self.m))
         if self.save_loss:
             if self.test is not None:
                 return (J, self.emp_cov_train, mod_cov, self.samples,
@@ -259,62 +258,62 @@ class fit_pairwise(object):
             return (J, self.emp_cov_train, mod_cov, self.samples,
                     psi, self.simp_mean, self.rigidity)
 
-    def Dloss(self, J_lin, gibbs_steps):
+    def error(self, J_flat, gibbs_iter):
         """
         Prepare the data before monte carlo sampling.
 
         Parameters
         ----------
-        J_lin : ndarry
+        J_flat : ndarry
            paremters
         iter : int
            Number of steps of gradient descent
-        gibbs_steps : int
+        gibbs_iter : int
            Number of monte carlo iterations
 
         """
         np.random.seed(seed=1)
-        J = np.array(J_lin[:self.m**2])
-        self.gibbs_steps = gibbs_steps
+        J = np.array(J_flat[:self.m**2])
+        self.gibbs_iter = gibbs_iter
         self.J = J.reshape((self.m, self.m))
-        self.psi = np.array(J_lin[self.m**2:]).reshape(self.m/3,)
-        model_covs = np.zeros((self.m**2, self.n_pools))
+        self.psi = np.array(J_flat[self.m**2:]).reshape(self.m/3,)
+        cov_models = np.zeros((self.m**2, self.n_pools))
         # NB need to chage this later on
         simplex_means = np.zeros((self.m/3, self.n_pools))
-        batch = np.array(self.pool.map(self.prepare_sampling,
+        batch = np.array(self.pool.map(self.sample_preperation,
                          range(0, self.n_pools)))
         batch = np.moveaxis(batch, 0, -1)
-        self.samples_batch = batch[:, :self.m].reshape(
-                             self.M_samples/self.n_pools, self.m, self.n_pools)
+        self.batch_samples = batch[:, :self.m].reshape(
+                            self.MC_samples/self.n_pools, self.m, self.n_pools)
         self.simplex_train = batch[:, self.m:].reshape(
-                             self.M_samples/self.n_pools, self.m/3,
+                             self.MC_samples/self.n_pools, self.m/3,
                              self.n_pools)
-        n, m, k = np.shape(self.samples_batch)
+        n, m, k = np.shape(self.batch_samples)
         # Combine all montecarlo
         for i in range(0, k):
-            model_cov_tmp = np.dot(self.samples_batch[:, :, i].T,
-                                   self.samples_batch[:, :, i])/n
-            model_covs[:, i] = model_cov_tmp.flatten()
+            cov_model_temp = np.dot(self.batch_samples[:, :, i].T,
+                                    self.batch_samples[:, :, i])/n
+            cov_models[:, i] = cov_model_temp.flatten()
             simplex_means[:, i] = np.mean(self.simplex_train[:, :, i],
                                           axis=0).flatten()
-        self.model_cov = np.sum(model_covs, axis=1)/self.n_pools
+        self.cov_model = np.sum(cov_models, axis=1)/self.n_pools
         self.simp_mean = np.sum(simplex_means, axis=1)/self.n_pools
         # Calculate the difference in mpdel correlation and emperical
         # correlation
-        Dloss_n = (-self.model_cov + self.emp_cov_train.flatten())
-        Dloss_s = (-self.simp_mean + self.rigidity.flatten())
-        Dloss_train = np.append(Dloss_n, Dloss_s)
+        error_n = (-self.cov_model + self.emp_cov_train.flatten())
+        error_s = (-self.simp_mean + self.rigidity.flatten())
+        error_train = np.append(error_n, error_s)
         if self.save_loss:
-            g_t = round(np.max(np.abs(Dloss_train)), 6)
+            g_t = round(np.max(np.abs(error_train)), 6)
             self.train_error.append(g_t)
         if self.emp_cov_test is not None:
-            Dloss_test = (-self.model_cov + self.emp_cov_test.flatten())
-            Dloss_s_test = (-self.simp_mean + self.test_rigidity.flatten())
-            Dloss_test = np.append(Dloss_test, Dloss_s_test)
+            error_test = (-self.cov_model + self.emp_cov_test.flatten())
+            error_s_test = (-self.simp_mean + self.test_rigidity.flatten())
+            error_test = np.append(error_test, error_s_test)
             if self.save_loss:
-                g_te = round(np.max(np.abs(Dloss_test)), 6)
+                g_te = round(np.max(np.abs(error_test)), 6)
                 self.test_error.append(g_te)
-        return Dloss_train
+        return error_train
 
     def __getstate__(self):
         """Use to make multi-processing work."""
